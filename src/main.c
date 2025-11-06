@@ -20,7 +20,10 @@ enum state programState = WAITING;
 // button interuption
 static void btn_fxn(uint gpio, uint32_t eventMask) {
     programState = READSENSOR;
+    
+    printf("%s\n","Buttonpressed");
 }
+
 
 static void sensor_task(void *arg){
     // read data from sensor
@@ -36,16 +39,33 @@ static void sensor_task(void *arg){
     for(;;){
         // if progarmstate == Sensor data decided by pressing button ??
         //printf("%s\n","gyro failed to start2");
-        //if(programState == READSENSOR) {
+        if(programState == READSENSOR) {
         // if button pressed (if button input high then)
         
         // how do we get the dat?  how much?? data handling ???
-        ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
+        float ax_sum, ay_sum, az_sum = 0.0;
+        for(int i = 0;i<1000;i++){
+            ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
+            if(ax > 0){
+            ax_sum = ax_sum +ax;
+            }
+            ay_sum = ay_sum +ay;
+            az_sum = az_sum +az;
+        }
+        printf("%s\n","ax sum");
+        printf("%0.4f\n", ax_sum);
+
+        printf("%s\n","ay sum");
+        printf("%0.4f\n", ay_sum);
+
+        printf("%s\n","az sum");
+        printf("%0.4f\n", az_sum);
+        //if(ax)
 
         //printf("%0.6f", ax, ay , az);
-        printf("%0.5f\n",ax);
-        printf("%0.5f\n",ay);
-        printf("%0.5f\n",az);
+        printf("%0.5f\n",gx);
+        printf("%0.5f\n",gy);
+        printf("%0.5f\n",gz);
 
         // need timer to calculate the how much have we moved and fiter out anomalies
 
@@ -69,22 +89,22 @@ static void sensor_task(void *arg){
 
 
         programState = DATA_READY;
-        //}
+        }
 
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
 }
 
 static void print_task(void *arg){
     (void)arg;
     //intianaliense the display
-    //init_display();
+    init_display();
 
     for(;;){
         if(programState == DATA_READY) {
             printf("%c\n", MORSE_CHAR);
 
-            //display_morse();
+            //display_morse(MORSE_CHAR);
 
 
             programState = WAITING;
@@ -140,12 +160,12 @@ int main() {
 
     sleep_ms(300); //Wait some time so initialization of USB and hat is done.
 
-    //init_buzzer();
+    init_buzzer();
 
     // need button iteruption handler maybe not if we do it with sensor interuption
     init_sw1();
     init_sw2();
-    //gpio_set_irq_enabled_with_callback(BUTTON1, SW1_PIN, true, btn_fxn);
+    gpio_set_irq_enabled_with_callback(BUTTON1, SW1_PIN, true, btn_fxn);
     //gpio_set_irq_enabled_with_callback(BUTTON2, SW2_PIN, true, btn_fxn);
     
 
