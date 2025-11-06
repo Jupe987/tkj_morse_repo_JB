@@ -39,7 +39,7 @@ static void sensor_task(void *arg){
     for(;;){
         // if progarmstate == Sensor data decided by pressing button ??
         //printf("%s\n","gyro failed to start2");
-        if(programState == READSENSOR) {
+        //if(programState == READSENSOR) {
         // if button pressed (if button input high then)
         
         // how do we get the dat?  how much?? data handling ???
@@ -89,7 +89,7 @@ static void sensor_task(void *arg){
 
 
         programState = DATA_READY;
-        }
+        //}
 
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
