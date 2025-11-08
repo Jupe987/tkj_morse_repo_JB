@@ -39,7 +39,9 @@ static void sensor_task(void *arg){
     for(;;){
         // if progarmstate == Sensor data decided by pressing button ??
         //printf("%s\n","gyro failed to start2");
+
         //if(programState == READSENSOR) {
+        
         // if button pressed (if button input high then)
         
         // how do we get the dat?  how much?? data handling ???
@@ -104,7 +106,8 @@ static void print_task(void *arg){
         if(programState == DATA_READY) {
             printf("%c\n", MORSE_CHAR);
 
-            //display_morse(MORSE_CHAR);
+            display_morse();
+            play_buzzer();
 
 
             programState = WAITING;
@@ -117,7 +120,7 @@ static void print_task(void *arg){
 void display_morse(){
     //function that display morse characters on hat screen
     // maybe this function inside print task or call
-    //write_text(MORSE_CHAR);
+    write_text(&MORSE_CHAR);
 }
 
 void read_usb(){
@@ -133,8 +136,16 @@ void read_usb(){
 
 void play_buzzer(){
 
-    //if char = . then that ........
-    
+    //if char = . then that ........ called from write task
+    if(MORSE_CHAR == '.')   {
+        buzzer_play_tone(10000, 300);
+    }
+    else if(MORSE_CHAR == '-')  {
+        buzzer_play_tone(15000, 300);
+    }
+    else {
+        buzzer_play_tone(5000, 300);
+    } 
 }
 
 
