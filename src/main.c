@@ -44,7 +44,6 @@ static void sensor_task(void *arg){
         
         // if button pressed (if button input high then)
         
-        // how do we get the dat?  how much?? data handling ???
         float ax_sum, ay_sum, az_sum = 0.0;
         for(int i = 0;i<1000;i++){
             ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
@@ -73,19 +72,19 @@ static void sensor_task(void *arg){
 
         //calca area under curve ??? in for loop ?? some treshold value ?? vector ??
         
-        //First read if we are movin (acc data) 
-        //if not moving then orientation (gyro data at this moment)
-        // w/ else if staments can be done
-        
-        // activated with button no?? probably not 
-
-        //if(gx >= something && gy >= something && gz){
-        //  then MORSE_CHAR = "."
-        //}
-        //if(gx >= something && gy >= something && gz){
-        //  then MORSE_CHAR = "_"
-        //}
-        // if we get new char with measurent next state
+        if (gpio_get(SW2_PIN) == 1) {
+            if(az > 0.9 && ay < 0.2 && ax < 0.2) {
+                programState = DATA_READY;
+                MORSE_CHAR = '.';
+            }
+            else if(az > 0.2 && ay < 0.9 && ax < 0.2){
+                programState = DATA_READY;
+                MORSE_CHAR = '-';
+            }
+            else{
+                programState = READSENSOR;
+            }
+        }
 
         MORSE_CHAR = '.';
 
@@ -108,7 +107,7 @@ static void print_task(void *arg){
 
             display_morse();
             play_buzzer();
-
+            //send data to usb
 
             programState = WAITING;
         }
@@ -153,8 +152,6 @@ int main() {
 
     stdio_init_all();
 
-    printf("%s","alustetaan usb");
-
     while (!stdio_usb_connected()) {
         sleep_ms(10);
        printf("%s","alustetaan usb");
@@ -162,8 +159,6 @@ int main() {
     //for(;;){
     //    printf("%s","alustetaan usb");
     //}
-
-    printf("%s","alustetaan usb");
 
     sleep_ms(300);
 
