@@ -13,6 +13,7 @@
 #define DEFAULT_STACK_SIZE 2048
 #define CDC_ITF_TX      1
 char MORSE_CHAR  = 'a';
+float gravity = 1.0;
 
 enum state { WAITING=1, DATA_READY, READSENSOR };
 enum state programState = WAITING;
@@ -40,29 +41,33 @@ static void sensor_task(void *arg){
         // if progarmstate == Sensor data decided by pressing button ??
         //printf("%s\n","gyro failed to start2");
 
-        //if(programState == READSENSOR) {
-        
-        // if button pressed (if button input high then)
-        
+        ax, ay, az, gx, gy, gz = read_sensor_func(&ax, &ay, &az, &gx, &gy, &gz);
         float ax_sum, ay_sum, az_sum = 0.0;
-        for(int i = 0;i<1000;i++){
-            ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
-            if(ax > 0){
-            ax_sum = ax_sum +ax;
+        float ax_grav, ay_grav, az_grav = 0.0;
+        
+        //ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
+
+        ax_grav = ax - gravity;
+        ay_grav = ay - gravity;
+        az_grav = az - gravity;
+        int num = 1;
+        while(num){
+            if(ax_grav > gravity){
+                ax_sum = ax_sum + ax_grav;
             }
-            ay_sum = ay_sum +ay;
-            az_sum = az_sum +az;
+            else if(ay_grav > gravity) {
+                ay_sum = ay_sum + ay_grav;
+            }
+            else if(az_grav > gravity) {
+                az_sum = ay_sum + az_grav;
+            }
+            else{
+                num = 0;
+            }
+            sleep_ms(10);
+            ax, ay, az, gx, gy, gz = read_sensor_func(&ax, &ay , &az, &gx, &gy, &gz);
         }
-        printf("%s\n","ax sum");
-        printf("%0.4f\n", ax_sum);
-
-        printf("%s\n","ay sum");
-        printf("%0.4f\n", ay_sum);
-
-        printf("%s\n","az sum");
-        printf("%0.4f\n", az_sum);
-        //if(ax)
-
+        
         //printf("%0.6f", ax, ay , az);
         printf("%0.5f\n",gx);
         printf("%0.5f\n",gy);
@@ -73,6 +78,7 @@ static void sensor_task(void *arg){
         //calca area under curve ??? in for loop ?? some treshold value ?? vector ??
         
         if (gpio_get(SW2_PIN) == 1) {
+
             if(az > 0.9 && ay < 0.2 && ax < 0.2) {
                 programState = DATA_READY;
                 MORSE_CHAR = '.';
@@ -94,6 +100,10 @@ static void sensor_task(void *arg){
 
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
+}
+
+float read_sensor_func(ax, ay , az, gx, gy, gz, t){
+    return ICM42670_read_sensor_data(ax, ay , az, gx, gy, gz, t);
 }
 
 static void print_task(void *arg){
