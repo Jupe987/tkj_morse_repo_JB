@@ -50,7 +50,7 @@ static void sensor_task(void *arg){
         ax_grav = ax - gravity;
         ay_grav = ay - gravity;
         az_grav = az - gravity;
-        int num = 1;
+        int num = 10;
         while(num){
             if(ax_grav > gravity){
                 ax_sum = ax_sum + ax_grav;
@@ -62,20 +62,31 @@ static void sensor_task(void *arg){
                 az_sum = ay_sum + az_grav;
             }
             else{
-                num = 0;
+                num = -1;
+                break;
             }
-            sleep_ms(10);
+            num = num -1;
+            sleep_ms(25);
             ax, ay, az, gx, gy, gz = read_sensor_func(&ax, &ay , &az, &gx, &gy, &gz);
+            ax_grav = ax - gravity;
+            ay_grav = ay - gravity;
+            az_grav = az - gravity;
+        }
+        printf("%s\n","sums acc");
+
+        printf("%0.5f\n",ax_sum);
+        printf("%0.5f\n",ax_sum);
+        printf("%0.5f\n",ax_sum);
+
+        if(az_sum > 3){
+            MORSE_CHAR = '.';
+            programState = DATA_READY;
         }
         
-        //printf("%0.6f", ax, ay , az);
+        printf("%s\n","gyro data");
         printf("%0.5f\n",gx);
         printf("%0.5f\n",gy);
         printf("%0.5f\n",gz);
-
-        // need timer to calculate the how much have we moved and fiter out anomalies
-
-        //calca area under curve ??? in for loop ?? some treshold value ?? vector ??
         
         if (gpio_get(SW2_PIN) == 1) {
 
@@ -92,11 +103,9 @@ static void sensor_task(void *arg){
             }
         }
 
-        MORSE_CHAR = '.';
-
-
+        //MORSE_CHAR = '.';
         programState = DATA_READY;
-        //}
+        
 
         vTaskDelay(pdMS_TO_TICKS(5000));
     }
