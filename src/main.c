@@ -14,21 +14,17 @@
 #define CDC_ITF_TX      1
 char MORSE_CHAR  = 'a';
 float gravity = 0.95;
-char message[63];
+char message[64];
+int count = 0;
 
-enum state { WAITING=1, DATA_READY, READSENSOR, READ_USB};
+enum state { WAITING=1, DATA_READY, ENDOFMESG };
 enum state programState = WAITING;
 
 // button interuption
 static void btn_fxn(uint gpio, uint32_t eventMask) {
-    programState = READ_USB;
-    
-    //printf("%s\n","Buttonpressed");
+    //
+    programState = ENDOFMESG;
 }
-
-//float read_sensor_func(ax, ay , az, gx, gy, gz, t){
-//    return ICM42670_read_sensor_data(ax, ay , az, gx, gy, gz, t);
-//}
 
 void display_morse(){
     //function that display morse characters on hat screen
@@ -38,43 +34,15 @@ void display_morse(){
 }
 
 void read_usb(){
-    // if programstate == read usb decided by pressing button
-    // char usb_input_buffer[31];
-    // printf("%s\n","HERE5");
-    // if(programState == READ_USB) {
-    //     printf("usb: waiting for input\n");
-    //     printf("%s\n","HERE4");
-    //     // read from terminal on pc
-    //     if(stdio_usb_connected()) {
-    //         if(scanf("%31s", usb_input_buffer) == 1) {
-    //             //usb_input_ready = 1;
-    //             printf("%s\n","HERE2");
-    //             // store in global variable and process first morse char
-    //             if(strlen(usb_input_buffer) > 0) {
-    //                 char first_char = usb_input_buffer[0];
-    //                 if(first_char == '.' || first_char == '-') {
-    //                     MORSE_CHAR = first_char;
-    //                     programState = DATA_READY;
-    //                     printf("%s\n","HERE7");
-    //                     printf("%c\n",MORSE_CHAR);
-    //                 }
-    //                 printf("%s\n","HERE3");
-    //             }
-                
-    //         }
-    //     }
-    // }
-    // else{
-    // programState = WAITING;
-    // }
-
+    
     int ch = getchar_timeout_us(1000);
     if (ch >= 0) {
-        if(ch == '.' || ch == '-') {
+        if(ch == '.' || ch == '-' || ch == ' ') {
             MORSE_CHAR = ch;
-            programState = DATA_READY;
-            //printf("%s\n","HERE7");
-            //printf("%c\n",MORSE_CHAR);
+            programState = DATA_READY;            
+        }
+        if((char)ch == '\n'){
+            programState = ENDOFMESG;
         }
     }
     
@@ -97,29 +65,44 @@ void play_buzzer(){
 
 static void print_task(void *arg){
     (void)arg;
+    puts("USB ready to recive symbols");
     //intianaliense the display
     init_display();
+    clear_display();
 
     for(;;){
+        if(programState == ENDOFMESG){
+        putchar_raw((char) '\n');
+        puts("message was:");
+        puts(message);
+        puts("new message");
+
+        programState = WAITING;
+        }
         if(programState == WAITING) {
             read_usb();
         }
+        // IF WE HAVE DATA 
         if(programState == DATA_READY) {
-            //printf("%c\n", MORSE_CHAR);
 
             display_morse();
             play_buzzer();
+            message[count] = (char)MORSE_CHAR;
+            count++;
+            message[count] = '\0';
+     
             //send data to usb
             putchar_raw((char) MORSE_CHAR);
+            putchar_raw((char) ' ');
             MORSE_CHAR = 'a';
             programState = WAITING;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 static void sensor_task(void *arg){
-    // read data from sensor
+    // This task reads data from sensor and based on data we get the morse char
     (void)arg;
     init_ICM42670();
     float ax, ay, az, gx, gy, gz, t;
@@ -134,17 +117,14 @@ static void sensor_task(void *arg){
         float ax_sum = 0.0, ay_sum = 0.0, az_sum = 0.0;
         float ax_grav, ay_grav, az_grav = 0.0;
 
-            // Read sensor
+        // Read sensor
         ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
        
         if (gpio_get(SW2_PIN) == 1 && programState == WAITING) {
+            // indicate that we are ready to move board
             toggle_led();
             sleep_ms(200);
-            int runs = 0;
-            //while(ax < 1.1 || ay < 1.1 || az < 1.1 || runs > 2000){
-            //    ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
-            //    runs ++;
-            //}
+
             //How many readings we want
             int sample_size = 10;
             while(sample_size > 0){
@@ -170,12 +150,6 @@ static void sensor_task(void *arg){
                 //printf("%s\n","HERE2");
             }
             toggle_led();
-            
-            //printf("%s\n","sums acc");
-
-            //printf("%0.5f\n",ax_sum);
-            //printf("%0.5f\n",ay_sum);
-            //printf("%0.5f\n",az_sum);
 
             if(az_sum > 3){
                 //printf("%s\n","HERE az sum comp");
@@ -187,12 +161,8 @@ static void sensor_task(void *arg){
                 MORSE_CHAR = '-';
                 programState = DATA_READY;
             }
-            
-            //printf("%s\n","acc data");
-            //printf("%0.5f\n",ax);
-            //printf("%0.5f\n",ay);
-            //printf("%0.5f\n",az);
 
+            // gets the position
             if(programState != DATA_READY && gpio_get(SW2_PIN) == 1) {
                 if(az > 0.9 && ay < 0.2 && ax < 0.2) {
                     programState = DATA_READY;
@@ -212,7 +182,7 @@ static void sensor_task(void *arg){
             }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
