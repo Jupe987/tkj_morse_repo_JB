@@ -22,9 +22,9 @@ float ax, ay, az, gx, gy, gz, t;
 enum state { WAITING=1, DATA_READY, ENDOFMESG };
 enum state programState = WAITING;
 
-// button interuption
+// button interuption for ending the message
 static void btn_fxn(uint gpio, uint32_t eventMask) {
-    //
+
     programState = ENDOFMESG;
 }
 
@@ -36,7 +36,7 @@ void display_morse(){
 }
 
 void read_usb(){
-    
+    // Checks usb for approwed characters
     int ch = getchar_timeout_us(200);
     if (ch >= 0) {
         if(ch == '.' || ch == '-' || ch == ' ') {
@@ -51,13 +51,12 @@ void read_usb(){
 }
 
 void play_buzzer(){
-
-    //if char = . then that ........ called from write task
+    // Plays the buzzer based on what char is stored in morse char
     if(MORSE_CHAR == '.')   {
        buzzer_play_tone(10000, 300);
     }
     else if(MORSE_CHAR == '-')  {
-        buzzer_play_tone(15000, 300);
+        buzzer_play_tone(15000, 500);
     }
     else 
     {
@@ -65,16 +64,19 @@ void play_buzzer(){
     } 
 }
 void positon_handler(){
-
+    
     if(az > 0.9 && ay < 0.2 && ax < 0.2) {
+        //screen upwards
         programState = DATA_READY;
         MORSE_CHAR = '.';
     }
     else if(az < 0.2 && ay > 0.9 && ax < 0.2){
+        //screen away from user
         programState = DATA_READY;
         MORSE_CHAR = '-';
     }
     else if(az < 0.2 && ay < 0.2 && ax > 0.9){
+        //screen to left from user
         programState = DATA_READY;
         MORSE_CHAR = ' ';
     }
@@ -84,6 +86,8 @@ void positon_handler(){
     
 }
 void motion_handler(){
+    //Gets gyro acc and if the board is moving in sample window enough we get morse char
+    //if sum exceeds threshold value
     //intialise variales to store sum of acc and reset them each call
     float ax_sum = 0.0, ay_sum = 0.0, az_sum = 0.0;
     float ax_grav = 0.0, ay_grav = 0.0, az_grav = 0.0;
@@ -107,30 +111,31 @@ void motion_handler(){
         //Little delay between samples
         sleep_ms(35);
         ICM42670_read_sensor_data(&ax, &ay , &az, &gx, &gy, &gz, &t);
-        //printf("%s\n","HERE2");
     }
 
     if(az_sum > 3){
-        printf("%0.2f",az_sum);
+        //updwards
         MORSE_CHAR = '.';
         programState = DATA_READY;
     }
 
     if(ax_sum > 2.2){
-        printf("%0.2f",ax_sum);
+        //to left
         MORSE_CHAR = '-';
         programState = DATA_READY;
     }
 }
 
 static void print_task(void *arg){
-    //HANDLES THE USB MESSAGE GETTING AND PRINTING AND STORING THE MESSAGE 
+    //HANDLES THE USB MESSAGE GETTING, AND PRINTING AND STORING THE MESSAGE 
     //ALSO BUZZER AND DISPLAY 
     (void)arg;
     puts("USB ready to recive symbols");
     //intianaliense the display
     init_display();
     clear_display();
+
+    //intianaliense the buzzer
     init_buzzer();
 
     for(;;){
@@ -164,7 +169,9 @@ static void print_task(void *arg){
      
             //send data to usb
             putchar_raw((char) MORSE_CHAR);
-            putchar_raw((char) ' ');
+            if(MORSE_CHAR != ' ') {
+                putchar_raw((char) ' ');
+            }
             MORSE_CHAR = 'a';
             programState = WAITING;
         }
@@ -221,15 +228,13 @@ int main() {
 
     sleep_ms(300); //Wait some time so initialization of USB and hat is done.
     
-    //BUTTONN FOR INTERUPTION
-    init_sw1();
-    init_sw2();
+    
+    init_sw1(); //BUTTONN FOR INTERUPTION
+    
+    init_sw2(); //button for data gathering
 
     gpio_set_irq_enabled_with_callback(BUTTON1, SW1_PIN, true, btn_fxn);
-    //gpio_set_irq_enabled_with_callback(BUTTON2, SW2_PIN, true, btn2_fxn);
-
-
-
+  
     TaskHandle_t hSensorTask, hPrintTask, hUSB = NULL;
 
     // Create the tasks with xTaskCreate
