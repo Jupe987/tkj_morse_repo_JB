@@ -135,7 +135,7 @@ void motion_handler(){
 
 static void print_task(void *arg){
     //HANDLES THE USB MESSAGE GETTING, AND PRINTING AND STORING THE MESSAGE 
-    //ALSO BUZZER AND DISPLAY 
+    //ALSO BUZZER AND DISPLAY is played when data is ready
     //Berat
     (void)arg;
     puts("USB ready to recive symbols");
