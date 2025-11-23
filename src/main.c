@@ -1,4 +1,6 @@
 
+//Berat Yildiz and Julius Pajukangas
+//Tier 2
 #include <stdio.h>
 #include <string.h>
 
@@ -29,6 +31,7 @@ static void btn_fxn(uint gpio, uint32_t eventMask) {
 }
 
 void display_morse(){
+    //Julius
     //function that display morse characters on hat screen
     clear_display();
     write_text(&MORSE_CHAR);
@@ -36,6 +39,7 @@ void display_morse(){
 }
 
 void read_usb(){
+    //Berat
     // Checks usb for approwed characters
     int ch = getchar_timeout_us(200);
     if (ch >= 0) {
@@ -52,6 +56,7 @@ void read_usb(){
 
 void play_buzzer(){
     // Plays the buzzer based on what char is stored in morse char
+    //Julius
     if(MORSE_CHAR == '.')   {
        buzzer_play_tone(10000, 300);
     }
@@ -64,6 +69,7 @@ void play_buzzer(){
     } 
 }
 void positon_handler(){
+    //Julius
     
     if(az > 0.9 && ay < 0.2 && ax < 0.2) {
         //screen upwards
@@ -86,6 +92,7 @@ void positon_handler(){
     
 }
 void motion_handler(){
+    //Julius/berat
     //Gets gyro acc and if the board is moving in sample window enough we get morse char
     //if sum exceeds threshold value
     //intialise variales to store sum of acc and reset them each call
@@ -129,6 +136,7 @@ void motion_handler(){
 static void print_task(void *arg){
     //HANDLES THE USB MESSAGE GETTING, AND PRINTING AND STORING THE MESSAGE 
     //ALSO BUZZER AND DISPLAY 
+    //Berat
     (void)arg;
     puts("USB ready to recive symbols");
     //intianaliense the display
@@ -163,8 +171,10 @@ static void print_task(void *arg){
             //Store the full message
             message[count] = (char)MORSE_CHAR;
             count++;
-            message[count] = ' ';
-            count++;
+            if(MORSE_CHAR != ' ') {
+                message[count] = ' ';
+                count++;
+            }
             message[count] = '\0';
      
             //send data to usb
@@ -176,11 +186,12 @@ static void print_task(void *arg){
             programState = WAITING;
         }
 
-        vTaskDelay(pdMS_TO_TICKS(1500));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
 static void sensor_task(void *arg){
+    //Julius
     // This task reads data from sensor and based on data we get the corresponding morse char
     (void)arg;
     init_ICM42670();
@@ -211,12 +222,12 @@ static void sensor_task(void *arg){
                 positon_handler();
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(1500));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
 int main() {
-
+    // Julius/Berat
     stdio_init_all();
 
     while (!stdio_usb_connected()) {
